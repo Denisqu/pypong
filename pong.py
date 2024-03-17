@@ -126,6 +126,10 @@ class Ball():
 			else:
 				self.speed_y = speed_y
 
+	def set_pos(self, x, y):
+		self.center_x = x
+		self.center_y = y
+
 	def invert_move(self, invert_x=False, invert_y=False):
 		if invert_x:
 			self.speed_x *= -1
@@ -188,6 +192,10 @@ class Gamer:
 			self.rect.top = 0
 		if self.rect.bottom >= self.disp_h:
 			self.rect.bottom = self.disp_h
+
+	def set_pos(self, x, y):
+		self.rect.y = y
+		self.rect.x = x
 
 	def set_speed(self, speed_y: int | float) -> None:
 		if speed_y == 0:
@@ -351,7 +359,7 @@ class PongGame:
 			self._game_field.fill_screen()
 			pong_log.info("End game, CPU wins!")
 			self._write_win("CPU")
-			sleep(2)
+			sleep(0.25)
 			self._pong_pygame.quit()
 			sys.exit()
 		if self._stat['player_score'] == self._stat['max_score']:
@@ -380,21 +388,23 @@ class PongGame:
 	def run_game(self):
 		pong_log.info("Game start!")
 		while True:
-			self._check_collision()
-			self._move_computer()
-			self._update_events()
-			self._game_field.fill_screen()
-			self._ball.update_pos()
-			self._player.update_pos()
-			self._computer.update_pos()
-			self._ball.draw(self._game_field.get_screen())
-			self._player.draw(self._game_field.get_screen())
-			self._computer.draw(self._game_field.get_screen())
-			self._game_field.draw_borders()
-			self._write_score()
-			self._pong_pygame.display.flip()
-			self._clock.tick(self._fps)
+			self.run_game_once()
 
+	def run_game_once(self):
+		self._check_collision()
+		self._move_computer()
+		self._update_events()
+		self._game_field.fill_screen()
+		self._ball.update_pos()
+		self._player.update_pos()
+		self._computer.update_pos()
+		self._ball.draw(self._game_field.get_screen())
+		self._player.draw(self._game_field.get_screen())
+		self._computer.draw(self._game_field.get_screen())
+		self._game_field.draw_borders()
+		self._write_score()
+		self._pong_pygame.display.flip()
+		self._clock.tick(self._fps)
 
 def main():
 	#os.remove(os.path.abspath(log_file))
