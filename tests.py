@@ -149,7 +149,46 @@ class TestGame(unittest.TestCase):
                        10, 40, rgb_colors[color], player_name, screen_width, screen_height)
         computer = Gamer(20, (screen_height / 2) - 40, 10, 40,
                          rgb_colors[color], "CPU", screen_width, screen_height)
+        pong = PongGame(game_field, ball, player, computer, fps=fps, max_score=max_score)
+        pong.run_game_once()
+        pong._stat['player_score'] = 5
+        pong._check_end_game()
+        self.assertTrue(True)
+        pong._stat['player_score'] = 10
+        with self.assertRaises(SystemExit):
+            pong._check_end_game()
+
+    def test_move_player(self):
+        screen_width = 320
+        screen_height = 240
+        fps = 120
+        max_score = 10
+        color = 'red'
+        player_name = 'player'
+        game_field = GameField(screen_width, screen_height,
+                               "black", rgb_colors[color], "Pong")
+        ball = Ball(screen_width / 2, screen_height / 2, 5,
+                    rgb_colors[color], screen_width, screen_height)
+        player = Gamer(screen_width - 30, (screen_height / 2) - 40,
+                       10, 40, rgb_colors[color], player_name, screen_width, screen_height)
+        computer = Gamer(20, (screen_height / 2) - 40, 10, 40,
+                         rgb_colors[color], "CPU", screen_width, screen_height)
+        pong = PongGame(game_field, ball, player, computer, fps=fps, max_score=max_score)
+        pong.run_game_once()
+        event = pygame.event
+        event.type = pong._pong_pygame.KEYDOWN
+        event.key = pong._pong_pygame.K_UP
+        self.assertEqual(pong._player.get_speed(), 0)
+        pong._move_player(event)
+        self.assertEqual(pong._player.get_speed(), -pong._player_speed)
+        self.assertNotEqual(pong._player.get_speed(), 0)
+        event.type = pong._pong_pygame.KEYUP
+        event.key = pong._pong_pygame.K_UP
+        pong._move_player(event)
+        self.assertEqual(pong._player.get_speed(), 0)
+        self.assertNotEqual(pong._player.get_speed(), -pong._player_speed)
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(verbosity=2)
+    
