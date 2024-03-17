@@ -187,6 +187,16 @@ class TestGame(unittest.TestCase):
         pong._move_player(event)
         self.assertEqual(pong._player.get_speed(), 0)
         self.assertNotEqual(pong._player.get_speed(), -pong._player_speed)
+        event.type = pong._pong_pygame.KEYDOWN
+        event.key = pong._pong_pygame.K_LEFT
+        pong._move_player(event)
+        self.assertEqual(pong._player.get_speed(), 0)
+        self.assertNotEqual(pong._player.get_speed(), -pong._player_speed)
+        event.type = pong._pong_pygame.KEYUP
+        event.key = pong._pong_pygame.K_RIGHT
+        pong._move_player(event)
+        self.assertEqual(pong._player.get_speed(), 0)
+        self.assertNotEqual(pong._player.get_speed(), -pong._player_speed)
 
 
 if __name__ == '__main__':
