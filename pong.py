@@ -271,6 +271,7 @@ class PongGame:
 		self._ball_speed_increment = 0.5
 		self._player_speed = (self._game_field.disp_h) / (self._max_gamer_time_4_travel * self._fps)
 		self._cpu_speed = self._CPU_SPEED_DFLT
+		self.font = self._pong_pygame.font.SysFont("freemono", 50)
 
 	def _reset_game(self):
 		self._update_game_speed()
@@ -323,21 +324,24 @@ class PongGame:
 
 	# Based on incoming keyboard event, move the player
 	def _move_player(self, event: pygame.event):
-		if event.type == self._pong_pygame.KEYDOWN:
-			if event.key == self._pong_pygame.K_UP:
-				self._player.set_speed(-self._player_speed)
-			if event.key == self._pong_pygame.K_DOWN:
-				self._player.set_speed(self._player_speed)
-		if event.type == self._pong_pygame.KEYUP:
-			if event.key == self._pong_pygame.K_UP:
-				self._player.set_speed(self._player_speed)
-			if event.key == self._pong_pygame.K_DOWN:
-				self._player.set_speed(-self._player_speed)	
+		try:
+			if event.type == self._pong_pygame.KEYDOWN:
+				if event.key == self._pong_pygame.K_UP:
+					self._player.set_speed(-self._player_speed)
+				if event.key == self._pong_pygame.K_DOWN:
+					self._player.set_speed(self._player_speed)
+			if event.type == self._pong_pygame.KEYUP:
+				if event.key == self._pong_pygame.K_UP:
+					self._player.set_speed(self._player_speed)
+				if event.key == self._pong_pygame.K_DOWN:
+					self._player.set_speed(-self._player_speed)
+		except:
+			pass
+	
 
 	def _write_score(self):
 		font_size = 30
-		font = self._pong_pygame.font.SysFont("freemono", font_size)
-		img = font.render(
+		img = self.font.render(
 			f'{self._stat["cpu_score"]}    {self._stat["player_score"]}', True, self._game_field.line_color)
 		scor_str_len = len(
 			str(f'{self._stat["cpu_score"]}    {self._stat["player_score"]}')) * font_size
@@ -346,8 +350,7 @@ class PongGame:
 		
 	def _write_win(self, winner_name: str):
 		font_size = 30
-		font = self._pong_pygame.font.SysFont("freemono", font_size)
-		img = font.render(
+		img = self.font.render(
 			f'{winner_name} wins!', True, self._game_field.line_color)
 		win_name_str = len(
 			str(f'{winner_name} wins!')) * font_size
