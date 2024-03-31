@@ -383,7 +383,7 @@ class PongGame:
 				sys.exit()
 			# After a ball reset, waits for a player keypress to restart the ball
 			if event.type == self._pong_pygame.KEYDOWN or event.type == self._pong_pygame.KEYUP:
-				start_speed_x = get_random(1) * (self._BALL_SPEED_X_DFLT + (self._cpu_speed_increment * self._stat['level']))
+				start_speed_x = self._BALL_SPEED_X_DFLT + (self._cpu_speed_increment * self._stat['level'])
 				start_speed_y = self._BALL_SPEED_Y_DFLT + (self._cpu_speed_increment * self._stat['level'])
 				if self._ball.get_speed()[0] == 0 and self._ball.get_speed()[1] == 0:
 					self._ball.set_speed(start_speed_x, start_speed_y)
