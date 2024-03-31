@@ -4,6 +4,208 @@ from io import StringIO
 import pygame
 from pong import Ball, Gamer, GameField, PongGame, get_random, rgb_colors
 
+def get_default_game_objects() -> tuple[GameField, Ball, Gamer, Gamer, PongGame] :
+    screen_width = 320
+    screen_height = 240
+    fps = 120
+    max_score = 10
+    color = 'red'
+    player_name = 'player'
+    game_field = GameField(screen_width, screen_height,
+                               "black", rgb_colors[color], "Pong")
+    ball = Ball(screen_width / 2, screen_height / 2, 5,
+                    rgb_colors[color], screen_width, screen_height)
+    player = Gamer(screen_width - 30, (screen_height / 2) - 40,
+                       10, 40, rgb_colors[color], player_name, screen_width, screen_height)
+    computer = Gamer(20, (screen_height / 2) - 40, 10, 40,
+                         rgb_colors[color], "CPU", screen_width, screen_height)
+    pong = PongGame(game_field, ball, player, computer, fps=fps, max_score=max_score)
+
+    return game_field, ball, player, computer, pong
+
+
+
+class TestGame(unittest.TestCase):
+
+    def test_move_player_up_started(self):
+        gamefield, ball, player, computer, pong = get_default_game_objects()
+        pong.run_game_once()
+        event = pygame.event
+        event.type = pong._pong_pygame.KEYUP
+        event.key = pong._pong_pygame.K_UP
+        self.assertEqual(pong._player.get_speed(), 0)
+        pong._move_player(event)
+        self.assertEqual(pong._player.get_speed(), pong._player_speed)
+        self.assertNotEqual(pong._player.get_speed(), 0)
+
+    def test_move_player_up_ended(self):
+        gamefield, ball, player, computer, pong = get_default_game_objects()
+        pong.run_game_once()
+        event = pygame.event
+        event.type = pong._pong_pygame.KEYDOWN
+        event.key = pong._pong_pygame.K_UP
+        self.assertEqual(pong._player.get_speed(), 0)
+        pong._move_player(event)
+        self.assertEqual(pong._player.get_speed(), -pong._player_speed)
+        self.assertNotEqual(pong._player.get_speed(), 0)
+
+    def test_move_player_down_started(self):
+        gamefield, ball, player, computer, pong = get_default_game_objects()
+        pong.run_game_once()
+        event = pygame.event
+        event.type = pong._pong_pygame.KEYUP
+        event.key = pong._pong_pygame.K_DOWN
+        self.assertEqual(pong._player.get_speed(), 0)
+        pong._move_player(event)
+        self.assertEqual(pong._player.get_speed(), -pong._player_speed)
+        self.assertNotEqual(pong._player.get_speed(), 0)
+
+    def test_move_player_down_ended(self):
+        gamefield, ball, player, computer, pong = get_default_game_objects()
+        pong.run_game_once()
+        event = pygame.event
+        event.type = pong._pong_pygame.KEYDOWN
+        event.key = pong._pong_pygame.K_DOWN
+        self.assertEqual(pong._player.get_speed(), 0)
+        pong._move_player(event)
+        self.assertEqual(pong._player.get_speed(), pong._player_speed)
+        self.assertNotEqual(pong._player.get_speed(), 0)
+
+    def test_reset_game(self):
+        gamefield, ball, player, computer, pong = get_default_game_objects()
+        pong.run_game_once()
+
+        # change ball, player, computer speed and position:
+        ball.set_pos(123, 456)
+        player.set_pos(789, 12)
+        computer.set_pos(345, 678)
+        ball.set_speed(1, 2)
+
+        # reset
+        pong._reset_game()
+
+        # verify that pos and speed sucessfully reset
+        # ball
+        self.assertEqual(ball.center_x, gamefield.disp_w / 2)
+        self.assertEqual(ball.center_y, gamefield.disp_h / 2)
+        self.assertEqual(ball.speed_x, 0)
+        self.assertEqual(ball.speed_y, 0)
+        # player
+        self.assertEqual(player.rect.x, player.init_top_x)
+        self.assertEqual(player.rect.y, player.init_top_y)
+        # cpu
+        self.assertEqual(computer.rect.x, computer.init_top_x)
+        self.assertEqual(computer.rect.y, computer.init_top_y)
+
+    def test_check_collision(self):
+        gamefield, ball, player, computer, pong = get_default_game_objects()
+        pong.run_game_once()
+
+        # no goal
+        self.assertEqual(pong._stat['cpu_score'], 0)
+        self.assertEqual(pong._stat['player_score'], 0)
+        # player score goal
+        ball.set_pos(pong._computer.get_borders()['left'], 0)
+        pong._check_collision()
+        self.assertEqual(pong._stat['player_score'], 1)
+        # cpu score goal
+        ball.set_pos(pong._player.get_borders()['right'], 0)
+        pong._check_collision()
+        self.assertEqual(pong._stat['cpu_score'], 1)
+        # invert ball on player hit
+        ball.set_speed(1, 1)
+        x_speed, _ = ball.get_speed()
+        ball.set_pos(player.get_borders()['left'], player.rect.y)
+        pong._check_collision()
+        self.assertNotEqual(x_speed, ball.speed_x)
+        self.assertEqual(-x_speed, ball.speed_x)
+        # invert ball on computer hit
+        ball.set_speed(1, 1)
+        x_speed, _ = ball.get_speed()
+        ball.set_pos(computer.get_borders()['right'], computer.rect.y)
+        pong._check_collision()
+        self.assertNotEqual(x_speed, ball.speed_x)
+        self.assertEqual(-x_speed, ball.speed_x)
+
+    def test_update_game_speed(self):
+        gamefield, ball, player, computer, pong = get_default_game_objects()
+        pong.run_game_once()
+        pong._stat['player_score'] = 1
+        pong._stat['cpu_score'] = 0
+        pong._stat['last_diff'] = 0
+        pong._stat['level'] = 1
+        initial_speed_x, initial_speed_y = 1, 1
+        initial_speed_computer_y = computer.get_speed()
+        ball.set_speed(initial_speed_x, initial_speed_y)
+        pong._update_game_speed()
+        self.assertEqual(ball.get_speed()[0], initial_speed_x + pong._cpu_speed_increment)
+        self.assertEqual(ball.get_speed()[1], initial_speed_y + pong._cpu_speed_increment)
+        self.assertEqual(computer.get_speed(), initial_speed_computer_y + pong._cpu_speed + pong._cpu_speed_increment)
+        self.assertEqual(pong._stat['level'], 2)
+
+    def test_move_computer(self):
+        gamefield, ball, player, computer, pong = get_default_game_objects()
+        pong.run_game_once()
+        computer.set_pos(computer.get_borders()['center_x'], -100)
+        initial_cpu_speed = computer.get_speed()
+        ball.set_pos(pong._game_field.disp_w / 2 - ball.radius*2, 0)
+        pong._move_computer()
+        self.assertEqual(computer.get_speed(), initial_cpu_speed + pong._cpu_speed)
+        initial_cpu_speed = computer.get_speed()
+        computer.set_pos(computer.get_borders()['center_x'], 100)
+        pong._move_computer()
+        self.assertEqual(computer.get_speed(), initial_cpu_speed - pong._cpu_speed)
+        ball.set_pos(pong._game_field.disp_w / 2 + ball.radius*2, 0)
+        pong._move_computer()
+        self.assertEqual(computer.get_speed(), 0)
+
+
+    def test_check_end_game_cpu(self):
+        gamefield, ball, player, computer, pong = get_default_game_objects()
+        pong.run_game_once()
+        pong._stat['cpu_score'] = 5
+        pong._check_end_game()
+        self.assertEqual(pong._stat['winner'], 'none')
+        pong._stat['cpu_score'] = 10
+        with self.assertRaises(SystemExit):
+            try:
+                pong._check_end_game()
+            except:
+                self.assertEqual(pong._stat['winner'], 'cpu')
+                raise
+
+    def test_check_end_game_player(self):
+        gamefield, ball, player, computer, pong = get_default_game_objects()
+        pong.run_game_once()
+        pong._stat['player_score'] = 5
+        pong._check_end_game()
+        self.assertEqual(pong._stat['winner'], 'none')
+        pong._stat['player_score'] = 10
+        with self.assertRaises(SystemExit):
+            try:
+                pong._check_end_game()
+            except:
+                self.assertEqual(pong._stat['winner'], 'player')
+                raise
+
+    def test_update_events(self):
+        # check for quit:
+        gamefield, ball, player, computer, pong = get_default_game_objects()
+        pong.run_game_once()
+        quit_event = pygame.event.Event(pygame.QUIT)
+        pong._pong_pygame.event.post(quit_event)
+        with self.assertRaises(SystemExit):
+            try:
+                pong._update_events()
+            except:
+                raise
+
+        # check for ball reinit
+        gamefield, ball, player, computer, pong = get_default_game_objects()
+        pong.run_game_once()
+        quit_event = pygame.event.Event(pygame.QUIT)
+        pong._pong_pygame.event.post(quit_event)
+
 class TestBall(unittest.TestCase):
     def test_update_pos(self):
         # Create a Ball instance with predefined values for testing
@@ -78,125 +280,6 @@ class TestGameField(unittest.TestCase):
         self.assertIsInstance(game_field.get_screen(), pygame.Surface)
 
 
-class TestGame(unittest.TestCase):
-    def test_check_collision(self):
-        screen_width = 320
-        screen_height = 240
-        fps = 120
-        max_score = 10
-        color = 'red'
-        player_name = 'player'
-
-        game_field = GameField(screen_width, screen_height,
-                               "black", rgb_colors[color], "Pong")
-        ball = Ball(screen_width / 2, screen_height / 2, 5,
-                    rgb_colors[color], screen_width, screen_height)
-        player = Gamer(screen_width - 30, (screen_height / 2) - 40,
-                       10, 40, rgb_colors[color], player_name, screen_width, screen_height)
-        computer = Gamer(20, (screen_height / 2) - 40, 10, 40,
-                         rgb_colors[color], "CPU", screen_width, screen_height)
-        # no one score a goal
-        pong = PongGame(game_field, ball, player, computer, fps=fps, max_score=max_score)
-        pong.run_game_once()
-        self.assertEqual(pong._stat['cpu_score'], 0)
-        self.assertEqual(pong._stat['player_score'], 0)
-        # player score goal
-        ball.set_pos(pong._computer.get_borders()['left'], 0)
-        pong._check_collision()
-        self.assertEqual(pong._stat['player_score'], 1)
-        # cpu score goal
-        ball.set_pos(pong._player.get_borders()['right'], 0)
-        pong._check_collision()
-        self.assertEqual(pong._stat['cpu_score'], 1)
-
-    def test_check_end_game_cpu(self):
-        screen_width = 320
-        screen_height = 240
-        fps = 120
-        max_score = 10
-        color = 'red'
-        player_name = 'player'
-        game_field = GameField(screen_width, screen_height,
-                               "black", rgb_colors[color], "Pong")
-        ball = Ball(screen_width / 2, screen_height / 2, 5,
-                    rgb_colors[color], screen_width, screen_height)
-        player = Gamer(screen_width - 30, (screen_height / 2) - 40,
-                       10, 40, rgb_colors[color], player_name, screen_width, screen_height)
-        computer = Gamer(20, (screen_height / 2) - 40, 10, 40,
-                         rgb_colors[color], "CPU", screen_width, screen_height)
-        pong = PongGame(game_field, ball, player, computer, fps=fps, max_score=max_score)
-        pong.run_game_once()
-        pong._stat['cpu_score'] = 5
-        pong._check_end_game()
-        self.assertTrue(True)
-        pong._stat['cpu_score'] = 10
-        with self.assertRaises(SystemExit):
-            pong._check_end_game()
-
-
-    def test_check_end_game_player(self):
-        screen_width = 320
-        screen_height = 240
-        fps = 120
-        max_score = 10
-        color = 'red'
-        player_name = 'player'
-        game_field = GameField(screen_width, screen_height,
-                               "black", rgb_colors[color], "Pong")
-        ball = Ball(screen_width / 2, screen_height / 2, 5,
-                    rgb_colors[color], screen_width, screen_height)
-        player = Gamer(screen_width - 30, (screen_height / 2) - 40,
-                       10, 40, rgb_colors[color], player_name, screen_width, screen_height)
-        computer = Gamer(20, (screen_height / 2) - 40, 10, 40,
-                         rgb_colors[color], "CPU", screen_width, screen_height)
-        pong = PongGame(game_field, ball, player, computer, fps=fps, max_score=max_score)
-        pong.run_game_once()
-        pong._stat['player_score'] = 5
-        pong._check_end_game()
-        self.assertTrue(True)
-        pong._stat['player_score'] = 10
-        with self.assertRaises(SystemExit):
-            pong._check_end_game()
-
-    def test_move_player(self):
-        screen_width = 320
-        screen_height = 240
-        fps = 120
-        max_score = 10
-        color = 'red'
-        player_name = 'player'
-        game_field = GameField(screen_width, screen_height,
-                               "black", rgb_colors[color], "Pong")
-        ball = Ball(screen_width / 2, screen_height / 2, 5,
-                    rgb_colors[color], screen_width, screen_height)
-        player = Gamer(screen_width - 30, (screen_height / 2) - 40,
-                       10, 40, rgb_colors[color], player_name, screen_width, screen_height)
-        computer = Gamer(20, (screen_height / 2) - 40, 10, 40,
-                         rgb_colors[color], "CPU", screen_width, screen_height)
-        pong = PongGame(game_field, ball, player, computer, fps=fps, max_score=max_score)
-        pong.run_game_once()
-        event = pygame.event
-        event.type = pong._pong_pygame.KEYDOWN
-        event.key = pong._pong_pygame.K_UP
-        self.assertEqual(pong._player.get_speed(), 0)
-        pong._move_player(event)
-        self.assertEqual(pong._player.get_speed(), -pong._player_speed)
-        self.assertNotEqual(pong._player.get_speed(), 0)
-        event.type = pong._pong_pygame.KEYUP
-        event.key = pong._pong_pygame.K_UP
-        pong._move_player(event)
-        self.assertEqual(pong._player.get_speed(), 0)
-        self.assertNotEqual(pong._player.get_speed(), -pong._player_speed)
-        event.type = pong._pong_pygame.KEYDOWN
-        event.key = pong._pong_pygame.K_LEFT
-        pong._move_player(event)
-        self.assertEqual(pong._player.get_speed(), 0)
-        self.assertNotEqual(pong._player.get_speed(), -pong._player_speed)
-        event.type = pong._pong_pygame.KEYUP
-        event.key = pong._pong_pygame.K_RIGHT
-        pong._move_player(event)
-        self.assertEqual(pong._player.get_speed(), 0)
-        self.assertNotEqual(pong._player.get_speed(), -pong._player_speed)
 
 
 if __name__ == '__main__':

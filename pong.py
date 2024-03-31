@@ -64,14 +64,15 @@ pong_log.setLevel(logging.DEBUG)
 
 # Configure console handler
 console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)  # Imposta il livello a INFO o altro a tuo piacere
+console_handler.setLevel(logging.DEBUG)
 
 # Configure file handler
 file_handler = logging.FileHandler(log_file)
 file_handler.setLevel(logging.DEBUG)
 
 # Set format
-formatter = logging.Formatter('[%(asctime)s] - [%(levelname)s] - %(message)s')
+formatter = logging.Formatter("%(message)s",
+                              "%Y-%m-%d %H:%M:%S")
 console_handler.setFormatter(formatter)
 file_handler.setFormatter(formatter)
 
@@ -260,7 +261,8 @@ class PongGame:
 		self._pong_pygame.init()
 		self._clock = self._pong_pygame.time.Clock()
 		self._stat = {"player_score": 0, "cpu_score": 0,
-					   "last_diff": 0, "level": 1, "max_score": max_score}
+					   "last_diff": 0, "level": 1, "max_score": max_score,
+					   "winner": "none"}
 		self._fps = fps
 		self._BALL_SPEED_X_DFLT = (self._game_field.disp_w) / (self._max_ball_time_4_travel * self._fps)
 		self._BALL_SPEED_Y_DFLT = (self._game_field.disp_h) / (self._max_ball_time_4_travel * self._fps)
@@ -288,10 +290,12 @@ class PongGame:
 			self._stat['cpu_score'] += 1
 			self._reset_game()
 
+        # инвертируем движение мяча, если игрок отбил мяч
 		if ball_coord['right'] > self._game_field.disp_w / 2 and ball_coord['right'] >= self._player.get_borders()['left']:
 			if ball_coord['top'] <= self._player.get_borders()['bott'] and ball_coord['bott'] >= self._player.get_borders()['top']:
 				self._ball.invert_move(invert_x=True)
 
+        # инвертируем движение мяча, если противник отбил мяч
 		if ball_coord['left'] < self._game_field.disp_w / 2 and ball_coord['left'] <= self._computer.get_borders()['right']:
 			if ball_coord['top'] <= self._computer.get_borders()['bott'] and ball_coord['bott'] >= self._computer.get_borders()['top']:
 				self._ball.invert_move(invert_x=True)
@@ -306,8 +310,6 @@ class PongGame:
 				self._cpu_speed + self._cpu_speed_increment)
 			self._stat['last_diff'] = score_diff
 			self._stat['level'] += 1
-			pong_log.debug(
-				f"Update speed, score diff = {score_diff}, last diff {self._stat['last_diff']}, level: {self._stat['level']}")
 
 	# Move computer  to follow the ball after half of the game field
 	def _move_computer(self):
@@ -357,6 +359,7 @@ class PongGame:
 	def _check_end_game(self):
 		if self._stat['cpu_score'] == self._stat['max_score']:
 			self._game_field.fill_screen()
+			self._stat['winner'] = 'cpu'
 			pong_log.info("End game, CPU wins!")
 			self._write_win("CPU")
 			sleep(0.25)
@@ -364,6 +367,7 @@ class PongGame:
 			sys.exit()
 		if self._stat['player_score'] == self._stat['max_score']:
 			self._game_field.fill_screen()
+			self._stat['winner'] = 'player'
 			pong_log.info(f"End game, {self._player.name} wins!")
 			self._write_win(self._player.name)
 			sleep(2)
