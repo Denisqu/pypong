@@ -60,19 +60,19 @@ if os.path.exists(os.path.abspath(log_file)):
 
 # Configure main logger
 pong_log = logging.getLogger("Pong logger")
-pong_log.setLevel(logging.DEBUG)
+pong_log.setLevel(logging.CRITICAL)
 
 # Configure console handler
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.DEBUG)
+console_handler.setLevel(logging.INFO)
 
 # Configure file handler
 file_handler = logging.FileHandler(log_file)
-file_handler.setLevel(logging.DEBUG)
+file_handler.setLevel(logging.INFO)
 
 # Set format
-formatter = logging.Formatter("%(message)s",
-                              "%Y-%m-%d %H:%M:%S")
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
 file_handler.setFormatter(formatter)
 
@@ -282,12 +282,12 @@ class PongGame:
 	def _check_collision(self):
 		ball_coord = self._ball.get_borders()
 		if ball_coord['left'] <= self._computer.get_borders()['left']:
-			pong_log.debug("Player score +1")
+			pong_log.critical("Player score +1")
 			self._stat['player_score'] += 1
 			self._reset_game()
 
 		if ball_coord['right'] >= self._player.get_borders()['right']:
-			pong_log.debug("CPU score +1")
+			pong_log.critical("CPU score +1")
 			self._stat['cpu_score'] += 1
 			self._reset_game()
 
@@ -295,11 +295,14 @@ class PongGame:
 		if ball_coord['right'] > self._game_field.disp_w / 2 and ball_coord['right'] >= self._player.get_borders()['left']:
 			if ball_coord['top'] <= self._player.get_borders()['bott'] and ball_coord['bott'] >= self._player.get_borders()['top']:
 				self._ball.invert_move(invert_x=True)
+				pong_log.info(f"ball invert move by player")
+
 
         # инвертируем движение мяча, если противник отбил мяч
 		if ball_coord['left'] < self._game_field.disp_w / 2 and ball_coord['left'] <= self._computer.get_borders()['right']:
 			if ball_coord['top'] <= self._computer.get_borders()['bott'] and ball_coord['bott'] >= self._computer.get_borders()['top']:
 				self._ball.invert_move(invert_x=True)
+				pong_log.info(f"ball invert move by cpu")
 
 	# Update game speed after a reset due to cpu error
 	def _update_game_speed(self):
@@ -363,7 +366,7 @@ class PongGame:
 		if self._stat['cpu_score'] == self._stat['max_score']:
 			self._game_field.fill_screen()
 			self._stat['winner'] = 'cpu'
-			pong_log.info("End game, CPU wins!")
+			pong_log.critical("End game, CPU wins!")
 			self._write_win("CPU")
 			sleep(0.25)
 			self._pong_pygame.quit()
@@ -371,7 +374,7 @@ class PongGame:
 		if self._stat['player_score'] == self._stat['max_score']:
 			self._game_field.fill_screen()
 			self._stat['winner'] = 'player'
-			pong_log.info(f"End game, {self._player.name} wins!")
+			pong_log.critical(f"End game, {self._player.name} wins!")
 			self._write_win(self._player.name)
 			sleep(2)
 			self._pong_pygame.quit()
@@ -421,7 +424,7 @@ def main():
 	parser.add_argument('-n','--name', type=str, default="player 1", help='Player name')
 	parser.add_argument('-c', '--color', type=str, default="lightgrey", help='Game color (dflt light grey)')
 	parser.add_argument('--fps', type=int, default=120, help='Framerate (dflt 120)')
-	parser.add_argument('--max_score', type=int, default=10, help='Max score to win (dflt 10)')
+	parser.add_argument('--max_score', type=int, default=2, help='Max score to win (dflt 2)')
 	args = parser.parse_args()
 
 	screen_width = args.width
@@ -434,7 +437,6 @@ def main():
 	if color not in rgb_colors.keys():
 		pong_log.error(f"Color {color} not found, setting light grey")
 		color = "lightgrey"
-	# Il resto del tuo codice rimane invariato
 
 	game_field = GameField(screen_width, screen_height,
 						   "black", rgb_colors[color], "Pong")

@@ -329,8 +329,8 @@ class TestGameField(unittest.TestCase):
         pong.run_game_once()
         game_field.screen = MagicMock()
         pygame.draw.aaline = MagicMock()
-        game_field.fill_screen()
-        self.assertEqual(game_field.screen.fill.call_args[0], pygame.Color(rgb_colors['black']))
+        game_field.draw_borders()
+        self.assertEqual(pygame.draw.aaline.call_args[0][1], pygame.Color(game_field.line_color))
 
 
 class TestBall(unittest.TestCase):
@@ -386,4 +386,3 @@ class TestBall(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
-    
